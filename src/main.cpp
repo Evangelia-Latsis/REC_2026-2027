@@ -1,8 +1,9 @@
 #include <Arduino.h>
 //one thing to note HIGH -> no magnet detection, LOW -> magnetic detection
 //each number represents a hall effect sensor connected to an ESP32 GPIO pin
-const int sensorPins[] = {18, 19, 21, 22, 23}; 
+const int sensorPins[] = {18, 15}; 
 const int numSensors = sizeof(sensorPins) / sizeof(sensorPins[0]);
+
 
 const unsigned long debounceTime = 10; // 10 millisecond detection delay to avoid noise
 
@@ -10,6 +11,11 @@ const unsigned long debounceTime = 10; // 10 millisecond detection delay to avoi
 int previousStates[numSensors]; //stores last raw sensor reading
 int stableStates[numSensors]; //stores last confirmed sensor reading
 unsigned long lastChangeTimes[numSensors]; //records when each sensor's raw reading changed
+
+unsigned long time_1;
+unsigned long time_2;
+unsigned long delta_t;
+const double dist = 18;
 
 struct SensorEvent 
 {
@@ -38,7 +44,9 @@ void setup() {
 
     lastChangeTimes[i] = millis();
   }
-
+  time_1 = 0;
+  time_2 = 0;
+  delta_t = 0;
   Serial.println("Tracking has started");
 
 }
@@ -54,7 +62,15 @@ void recordEvent(int sensorIndex, unsigned long timestamp)
   //move to the next storage location, wrapping around if we readch the end of the array
   nextEvent = (nextEvent + 1) % MAX_EVENTS;
 
-  Serial.print("Sensor " + String(sensorIndex + 1) + " detected at " + String(timestamp) + " ms");
+  Serial.println("Sensor " + String(sensorIndex + 1) + " detected at " + String(timestamp) + " ms");
+
+  if (sensorIndex == 0) {
+    time_1 = timestamp;
+  } else if (sensorIndex == 1) {
+    time_2 = timestamp;
+    delta_t = time_2 - time_1;
+    Serial.println("Speed: " + String(dist / delta_t) + " m/s");
+  }
 }
 
 void loop() 
